@@ -1,4 +1,7 @@
+# Project files
 alura-apachebeam-basedados/
+.vscode/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
