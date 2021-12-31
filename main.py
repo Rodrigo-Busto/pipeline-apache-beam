@@ -2,6 +2,7 @@ import apache_beam as beam
 from apache_beam.io import ReadFromText
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.typehints.typehints import Any, Dict, List
+import re
 
 pipeline_options = PipelineOptions(argv = None)
 pipeline = beam.Pipeline(options = pipeline_options)
@@ -67,6 +68,19 @@ def chave_uf(elemento):
     chave = elemento['uf']
     return (chave, elemento)
 
+def casos_dengue(elemento):
+    """
+    Resumo
+    ------
+    Recebe uma tupla com a chave UF e o dicionario do elemento
+    e retorna uma tupla com a chave UF-ano_mes e o numero de casos
+    """
+    
+    uf, registros = elemento
+    for r in registros:
+        casos = float(r['casos']) if bool(re.search(r"\d", r['casos'])) else 0
+        yield (f'{uf}-{r["ano_mes"]}', casos)
+
 dengue = (
     pipeline
     | "Leitura do dataset de dengue" >> 
@@ -76,6 +90,8 @@ dengue = (
     | "Criando a coluna ano_mes" >> beam.Map(trata_data)
     | "Criar a chave pelo estado" >> beam.Map(chave_uf)
     | "Agrupando por estado" >> beam.GroupByKey()
+    | "Descompactar casos de dengue" >> beam.FlatMap(casos_dengue)
+    | "Somar os casos de dengue para cada estado-mes" >> beam.CombinePerKey(sum)
     | "Mostrando resultados" >> beam.Map(print)
 )
 
